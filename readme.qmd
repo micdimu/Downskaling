@@ -1,0 +1,187 @@
+---
+title: "README"
+subtitle: "GBM-based spatial downscaling of MAT/AP and CHELSA bioclim variables"
+author: "Michele Di Musciano"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    number-sections: false
+    theme: cosmo
+---
+
+## Overview
+
+This repository contains a structured R pipeline for:
+
+- Building static topo-climatic predictors
+- Downscaling Mean Annual Temperature (MAT) using GBM
+- Extracting annual time series for permanent plots
+- Generating multi-layer rasters for study areas
+- Downloading and downscaling CHELSA bioclim scenarios
+
+The workflow integrates terrain-derived predictors with coarse-resolution climate data to produce spatially explicit high-resolution climate layers.
+
+---
+
+## Workflow Structure
+
+### 01_build_pred.R
+
+**Purpose:**  
+Builds the static predictor stack.
+
+**Operations:**
+
+- DEM aggregation
+- Terrain derivatives:
+  - slope
+  - aspect
+  - eastness / northness
+  - TRI
+  - TPI
+  - roughness
+  - elevation SD (3x3)
+- Flow accumulation and TWI
+- Latitude layer
+- Solar radiation (GHI)
+
+**Output:**
+
+- `input/pred_stack.tif`
+- `input/pred_plots.csv`
+
+---
+
+### 02_model.R
+
+**Purpose:**  
+Fits and applies GBM models for MAT downscaling.
+
+**Modeling approaches:**
+
+- Global GBM (all years together; year as factor)
+- Year-specific GBM (one model per year)
+
+**GBM settings:**
+
+- `n.trees = 8000`
+- `interaction.depth = 3`
+- `shrinkage = 0.01`
+- `bag.fraction = 0.6`
+- `cv.folds = 5`
+
+**Output:**
+
+- `YEARLY/MATyearly_downscaled_plots.csv`
+- `YEARLY/MATyearly_downscaled_plots_each.csv`
+- `YEARLY/APyearly_downscaled_plots_each.csv`
+
+---
+
+### 03_predict_study_areas.R
+
+**Purpose:**  
+Produces raster stacks for each study area.
+
+For each area:
+
+- 1 km buffer
+- Crop predictors
+- Predict MAT (global + yearly models)
+- Interpolate precipitation
+
+**Output:**
+
+- `Down_MAT_AP_<Area>.tif`
+
+---
+
+### 04_getchelsa.R
+
+**Purpose:**  
+Automated download and cropping of CHELSA bioclim variables.
+
+**Variables:**
+
+- bio01 (temperature)
+- bio12 (precipitation)
+
+**Scenarios:**
+
+- Historical (1981–2010)
+- Future (2011–2040, 2041–2070)
+- Multiple GCM × SSP combinations
+
+All rasters are cropped to the local bounding box.
+
+**Output:**
+
+- Cropped rasters stored in `CHELSA/`
+
+---
+
+### 05_future.R
+
+**Purpose:**  
+Downscaling of CHELSA future bioclim variables.
+
+- bio01 → GBM-based downscaling
+- bio12 → spatial interpolation
+
+**Output:**
+
+- Downscaled rasters stored in `BIOCLIM/`
+
+---
+
+### Source_fun.R
+
+Contains shared functions:
+
+- Plot-level prediction
+- Raster prediction
+- Year-specific GBM fitting
+- Study area stack construction
+- CHELSA bioclim downscaling utilities
+
+---
+
+## Dependencies
+
+Main R packages:
+
+- `terra`
+- `sf`
+- `gbm`
+- `tidyverse`
+- `data.table`
+- `furrr`
+
+---
+
+## Recommended Execution Order
+
+1. `01_build_pred.R`
+2. `02_model.R`
+3. `03_predict_study_areas.R`
+4. `04_getchelsa.R`
+5. `05_future.R`
+
+---
+
+## Methodological Notes
+
+- Static predictors are time-invariant.
+- Temporal variability is captured via:
+  - year as factor (global GBM)
+  - independent yearly models
+- Future downscaling assumes stationarity of spatial relationships between terrain predictors and climate.
+
+---
+
+## Computational Notes
+
+- GBM fitting can be memory-intensive.
+- The global model is computationally expensive.
+- Future scenario processing scales with number of GCM × SSP combinations.
