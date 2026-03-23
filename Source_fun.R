@@ -116,7 +116,7 @@ cook_studyarea <- function(studyarea, pred, prec){
   
   m <- readRDS("MODEL/model_all.RDS")
   
-  year_sel <- seq(1970, 2020, by = 1)
+  year_sel <- seq(1970, 2022, by = 1)
   
   pred_modall <- map(year_sel, pred_st_fun, mod = m, cas_p = cas_p, ntre = 8000) 
   

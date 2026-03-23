@@ -60,25 +60,31 @@ dt_y <- dt |>
 extr_plot_loc <- terra::extract(pred, coords) |> 
   mutate(ID = coords$Plot_name)
 
+
+if(!file.exists("MODEL/model_all.RDS")){
+  errorCondition(message = "BoiaDeh bisogna fare rigirare tutto -->")
+}
+
 ### NOT TO RUN - VERY TIME CONSUMING ###
-start <- Sys.time()
 
-m <- gbm(
-  MAT ~ .,
-  data = as.data.frame(dt_y),
-  distribution = "gaussian",
-  n.trees = 8000,
-  interaction.depth = 3,
-  shrinkage = 0.01,
-  bag.fraction = 0.6,
-  n.minobsinnode = 10,
-  cv.folds = 5,
-  keep.data = FALSE,
-  verbose = FALSE
-)
-
-Sys.time() - start
-
+# start <- Sys.time()
+# 
+# m <- gbm(
+#   MAT ~ .,
+#   data = as.data.frame(dt_y),
+#   distribution = "gaussian",
+#   n.trees = 8000,
+#   interaction.depth = 3,
+#   shrinkage = 0.01,
+#   bag.fraction = 0.6,
+#   n.minobsinnode = 10,
+#   cv.folds = 5,
+#   keep.data = FALSE,
+#   verbose = FALSE
+# )
+# 
+# Sys.time() - start
+# 
 #saveRDS(m, "MODEL/model_all.RDS")
 
 m <- readRDS("MODEL/model_all.RDS")
